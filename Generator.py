@@ -54,7 +54,7 @@ def genTest(description, o):
     t.postcondition=copyOrderbook
     t.postcondition.debugAllOrders()
     TestMaster.html+=t.postcondition.getHtmlOrderTables()
-    print("Test case " + description  + ": testdata_" + str(TestMaster.testnumber).zfill(3) + ".json")
+    print("Testcase " + description  + ": testdata_" + str(TestMaster.testnumber).zfill(3) + ".json")
     csvstr=str(TestMaster.testnumber).zfill(3) + ".json;" + description
     TestMaster.csv=TestMaster.csv + csvstr + "\n"
 
