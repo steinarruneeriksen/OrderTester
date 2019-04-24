@@ -4,6 +4,7 @@ from MarketEnums import *
 from json_convert_to_dict import convert_to_dict
 import json
 import copy
+from Trade import Trade
 
 # 2 different order functions. Sorting buy orders with highest price on top and sell orders with lowest price on top
 
@@ -30,6 +31,7 @@ class Orderbook:
         OrderIdGen.orderIdNum=100  #Initialize Order Id singleton
         self.buy_orders=[]
         self.sell_orders=[]
+        self.trades=[]
         
     #Appends to correct list and sorts using the correct Buy/Sell option    
     def updateAndSort(self, orderList, order, sortfunc):
@@ -102,6 +104,29 @@ class Orderbook:
     def debugAsJson(self, o):
         print json.dumps(o,default=convert_to_dict,indent=4, sort_keys=True)
 
+    def getReservationPrice(self, order1, order2):
+        if order1.orderParameters.reservationPrice is None:
+            return order2.orderParameters.reservationPrice
+        return order1.orderParameters.reservationPrice
+
+
+    def createTrade(self, passiveOrder, agressorOrder):
+        print "TRADEEE"
+        t=Trade()
+        t.orderId=passiveOrder.orderParameters.orderId
+        t.quantity=passiveOrder.orderParameters.quantity
+        t.price=passiveOrder.orderParameters.getSumPrice()
+        t.settle=self.getReservationPrice(passiveOrder, agressorOrder)
+        self.trades.append(t)
+
+        t=Trade()
+        t.orderId=agressorOrder.orderParameters.orderId
+        t.quantity=passiveOrder.orderParameters.quantity
+        t.price=passiveOrder.orderParameters.getSumPrice()
+        t.settle=self.getReservationPrice(passiveOrder, agressorOrder)
+        self.trades.append(t)
+
+
     def enterOrder(self, o):
         #Just in case FoK/FaK means it will not transact. Hence prepare list and commit at end
         tempNewSplitdOrders=[]
@@ -137,6 +162,7 @@ class Orderbook:
             if fillOrder:
                 if qtyToFill>=order.orderParameters.quantity:
                     tempFilledOrders.append(order)
+                    self.createTrade(order, o)
                     qtyToFill=qtyToFill-order.orderParameters.quantity
                 elif qtyToFill<order.orderParameters.quantity:
                     # Split the passive order, and set the filled part as the old ID and
@@ -152,6 +178,7 @@ class Orderbook:
                     passiveOrder2.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.ACTIVE]
                     passiveOrder1.orderParameters.quantity=qtyToFill
                     passiveOrder1.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.FILLED]
+                    self.createTrade(passiveOrder1, o)
 
                     tempNewSplitdOrders.append(passiveOrder1)    #Will be added to the main sellers list if not rolled back (FillorKill case)
                     tempNewSplitdOrders.append(passiveOrder2)
@@ -181,6 +208,7 @@ class Orderbook:
                 o2.orderParameters.quantity=qtyToFill   #Remaining quantity
 
                 o1.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.FILLED]
+                #self.createTrade(passiveOrder1, o1)
                 o2.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.ACTIVE]  #Remain in orderbook if not FAK
 
                 self.genOrderId(o1)
@@ -198,6 +226,7 @@ class Orderbook:
         if transactFills:
             for ord in tempFilledOrders:
                 ord.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.FILLED]
+                self.createTrade(ord, o)
             for ord in tempCancelledOrders:
                 ord.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.CANCELLED]
             for newSplitOrder in tempNewSplitdOrders:  #THe newly created orders (if any) from splits

@@ -10,10 +10,11 @@ from MarketEnums import *
 class Order():
 
 
-    def __init__(self, id, unitPrice, reservPrice, actPrice, quantity, fillType, priceType, ispFrom, ispUntil, expiration):
+    def __init__(self, id, participant,unitPrice, reservPrice, actPrice, quantity, fillType, priceType, ispFrom, ispUntil, expiration):
         self.orderParameters=OrderParameters(id, unitPrice, reservPrice, actPrice, quantity, fillType, priceType, expiration)
         self.timeParameters=TimeParameters(ispFrom,ispUntil)
         self.locationParameters=LocationParameters()
+        self.participant=participant
         if unitPrice is None:
             self.profileParameters=ProfileParameters()
         else:

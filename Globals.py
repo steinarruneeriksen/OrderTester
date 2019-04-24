@@ -12,3 +12,6 @@ class OrderIdGen(object):
 
 class TestMaster(object):
     __metaclass__ = Singleton
+
+class TradeIdGen(object):
+    __metaclass__ = Singleton
