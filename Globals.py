@@ -15,3 +15,6 @@ class TestMaster(object):
 
 class TradeIdGen(object):
     __metaclass__ = Singleton
+
+class DealIdGen(object):
+    __metaclass__ = Singleton

@@ -1,5 +1,5 @@
 __author__ = 'steinarruneeriksen'
-from Globals import OrderIdGen
+from Globals import OrderIdGen, TradeIdGen, DealIdGen
 from MarketEnums import *
 from json_convert_to_dict import convert_to_dict
 import json
@@ -54,7 +54,7 @@ class Orderbook:
     def applyFilters(self, orderList, quantityType, regulation):
         retList=[]
         for o in orderList:
-            if o.orderParameters.orderStatus==OrderStatusEnum.ACTIVE and \
+            if o.orderParameters.orderStatus==ORDERSTATUSES[OrderStatusEnum.ACTIVE] and \
                             o.orderParameters.quantityType==quantityType and \
                             o.orderParameters.regulation==regulation :
                 retList.append(o)
@@ -66,27 +66,42 @@ class Orderbook:
             ostr+=" UnitPrice: <b>" + str(o.orderParameters.unitPrice) + "</b>"
         else:
             ostr+=" ReservPrice: <b>" + str(o.orderParameters.reservationPrice) + "</b> ActPrice: <b>" + str(o.orderParameters.activationPrice)  + " </b>= sum(" + str(o.orderParameters.getSumPrice()) + ")"
+        ostr+=" Quantity: <b>" + str(o.orderParameters.quantity)+ "</b>"
         ostr+=" FillType: <b>" + str(o.orderParameters.fillType)+ "</b>"
         ostr+=" PriceType: <b>" + str(o.orderParameters.priceType)+ "</b>"
         return ostr
 
     def getHtmlOrderTables(self):
         tbl="<b>Buy Orders</b>"
-        tbl=tbl+"<table class='ordertable'><tr><th>OrderId</th><th>HistOrderId</th><th>Status</th><th>Price</th><th>Qty</th></tr>"
+        tbl=tbl+"<table class='ordertable'><tr><th>OrderId</th><th>HistOrderId</th><th>Status</th><th>Participant</th><th>Price</th><th>Qty</th></tr>"
         for o in self.buy_orders:
             tbl=tbl+ self.debugHtmlOrder(o)
         tbl+="</table>"
 
         tbl+="<b>Sell Orders</b>"
-        tbl=tbl+"<table class='ordertable'><tr><th>OrderId</th><th>HistOrderId</th><th>Status</th><th>Price</th><th>Qty</th></tr>"
+        tbl=tbl+"<table class='ordertable'><tr><th>OrderId</th><th>HistOrderId</th><th>Status</th><th>Participant</th><th>Price</th><th>Qty</th></tr>"
         for o in self.sell_orders:
             tbl=tbl+ self.debugHtmlOrder(o)
         tbl=tbl+"</table>"
         return tbl
-    
+
+    def getHtmlTradeTables(self):
+        print "GEN  TABLE"
+        tbl="<b>Trades</b>"
+        tbl=tbl+"<table class='tradetable'><tr><th>DealId</th><th>TradeId</th><th>From Order</th><th>TradeTime</th><th>Paritipant</th><th>Side</th><th>Counterpart</th><th>Quantity</th><th>TotPrice</th><th>ResrvPricePayable</th><th>ResrvPriceReceivable</th><th>ActivPricePayable</th><th>ActivPriceReceivable</th><th>Period</th></tr>"
+        for o in self.trades:
+            tbl=tbl+ self.debugHtmlTrade(o)
+        tbl+="</table>"
+        print tbl
+        return tbl
+
+    def debugHtmlTrade(self, t):
+        return "<tr><td>" + str(t.dealId) + "</td><td>" + str(t.tradeId) + "</td><td>" + str(t.orderId)  + "</td><td>" + t.tradeTimeUtc \
+        + "</td><td>" + t.participant + "</td><td>" + t.side + "</td><td>NODES</td><td>" + str(t.quantity)  + "</td><td>"+ str(t.totalPrice)  + "</td><td>"+ str(t.getReservePricePayable()) + "</td><td>" + str(t.getReservePriceReceivable()) + "</td><td>"+ str(t.getActivationPricePayable()) + "</td><td>" + str(t.getActivationPriceReceivable()) + "</td><td>" + str(t.periodFromUtc) + " - " + str(t.periodUntilUtc) + "</td></tr>"
+
     def debugHtmlOrder(self, o):
         return "<tr><td>" + str(o.orderParameters.orderId) + "</td><td>" + str(o.orderParameters.histOrderId) + "</td><td>" + o.orderParameters.orderStatus \
-        + "</td><td>" + str(o.orderParameters.getSumPrice()) + "</td><td>" + str(o.orderParameters.quantity) + "</td></tr>"
+        + "</td><td>" + o.participant + "</td><td>" + str(o.orderParameters.getSumPrice()) + "</td><td>" + str(o.orderParameters.quantity) + "</td></tr>"
 
     def debugSingleOrder(self, o):
         return "OID: " + str(o.orderParameters.orderId) + ",HistOID: " + str(o.orderParameters.histOrderId) + ",STATUS: " + o.orderParameters.orderStatus \
@@ -110,21 +125,44 @@ class Orderbook:
         return order1.orderParameters.reservationPrice
 
 
+    # Adds Trade record between agressor and passiove order, setting price as passive order (pay as bid), and settler the reservation price
     def createTrade(self, passiveOrder, agressorOrder):
-        print "TRADEEE"
+        temptrades=[]
+        DealIdGen.dealId+=1
         t=Trade()
+        t.dealId=DealIdGen.dealId
+        t.side=passiveOrder.orderParameters.side
         t.orderId=passiveOrder.orderParameters.orderId
         t.quantity=passiveOrder.orderParameters.quantity
-        t.price=passiveOrder.orderParameters.getSumPrice()
-        t.settle=self.getReservationPrice(passiveOrder, agressorOrder)
-        self.trades.append(t)
+        t.participant=passiveOrder.participant
+        t.tradeTimeUtc=agressorOrder.orderParameters.lastModifiedUtc    #Trade time is same as order time of agressor
+        t.counterpart="NODES"
+        t.totalPrice=passiveOrder.orderParameters.getSumPrice()
+        temptrades.append(t)
 
         t=Trade()
+        t.dealId=DealIdGen.dealId
         t.orderId=agressorOrder.orderParameters.orderId
+        t.side=agressorOrder.orderParameters.side
+        t.participant=agressorOrder.participant
+        t.tradeTimeUtc=agressorOrder.orderParameters.lastModifiedUtc
+        t.counterpart="NODES"
         t.quantity=passiveOrder.orderParameters.quantity
-        t.price=passiveOrder.orderParameters.getSumPrice()
-        t.settle=self.getReservationPrice(passiveOrder, agressorOrder)
-        self.trades.append(t)
+        t.totalPrice=passiveOrder.orderParameters.getSumPrice()
+        temptrades.append(t)
+
+        for t in temptrades:
+            if t.side==SIDES[SideEnum.BUY]:
+                t.reservePricePayable=self.getReservationPrice(passiveOrder, agressorOrder)
+                t.activationPricePayable=t.totalPrice-t.reservePricePayable
+            else:
+                t.reservePriceReceivable=self.getReservationPrice(passiveOrder, agressorOrder)
+                t.activationPriceReceivable=t.totalPrice-t.reservePriceReceivable
+
+            t.blockSizeInSeconds=passiveOrder.timeParameters.blockSizeInSeconds
+            t.periodFromUtc=passiveOrder.timeParameters.periodFromUtc
+            t.periodUntilUtc=passiveOrder.timeParameters.periodUntilUtc
+        return temptrades
 
 
     def enterOrder(self, o):
@@ -132,6 +170,8 @@ class Orderbook:
         tempNewSplitdOrders=[]
         tempFilledOrders=[]
         tempCancelledOrders=[]
+        tempTrades=[]
+        priorDealId=DealIdGen.dealId
 
         self.genOrderId(o)
         qtyToFill=o.orderParameters.quantity  #qtyToFill will be reduced until fully filled or not more orders to fill from
@@ -162,7 +202,7 @@ class Orderbook:
             if fillOrder:
                 if qtyToFill>=order.orderParameters.quantity:
                     tempFilledOrders.append(order)
-                    self.createTrade(order, o)
+                    tempTrades.extend(self.createTrade(order, o))
                     qtyToFill=qtyToFill-order.orderParameters.quantity
                 elif qtyToFill<order.orderParameters.quantity:
                     # Split the passive order, and set the filled part as the old ID and
@@ -178,7 +218,7 @@ class Orderbook:
                     passiveOrder2.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.ACTIVE]
                     passiveOrder1.orderParameters.quantity=qtyToFill
                     passiveOrder1.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.FILLED]
-                    self.createTrade(passiveOrder1, o)
+                    tempTrades.extend(self.createTrade(passiveOrder1, o))
 
                     tempNewSplitdOrders.append(passiveOrder1)    #Will be added to the main sellers list if not rolled back (FillorKill case)
                     tempNewSplitdOrders.append(passiveOrder2)
@@ -198,37 +238,47 @@ class Orderbook:
                 #Nothing was filled and type was Normal. Just leave as Active
                 pass
             else:
-                #Split aggressor, and add orig order to cancel queue
-                o.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.CANCELLED]
-                o1 = copy.deepcopy(o)
-                o2 = copy.deepcopy(o)
-                filledQuantity=o.orderParameters.quantity-qtyToFill
+                if o.orderParameters.fillType==FILLTYPES[FillTypeEnum.FAK] and qtyToFill==o.orderParameters.quantity:
+                    o.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.EXPIRED]  # No volume was filled... in FAK. just let expire
+                else:
+                    #Split aggressor, and add orig order to cancel queue
+                    o.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.CANCELLED]
+                    o1 = copy.deepcopy(o)
+                    o2 = copy.deepcopy(o)
+                    filledQuantity=o.orderParameters.quantity-qtyToFill
 
-                o1.orderParameters.quantity=filledQuantity
-                o2.orderParameters.quantity=qtyToFill   #Remaining quantity
+                    o1.orderParameters.quantity=filledQuantity
+                    o2.orderParameters.quantity=qtyToFill   #Remaining quantity
 
-                o1.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.FILLED]
-                #self.createTrade(passiveOrder1, o1)
-                o2.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.ACTIVE]  #Remain in orderbook if not FAK
+                    o1.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.FILLED]
+                    o2.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.ACTIVE]  #Remain in orderbook if not FAK
 
-                self.genOrderId(o1)
-                self.genOrderId(o2)
-                o1.orderParameters.histOrderId=o.orderParameters.orderId
-                o2.orderParameters.histOrderId=o.orderParameters.orderId
+                    self.genOrderId(o1)
+                    self.genOrderId(o2)
+                    o1.orderParameters.histOrderId=o.orderParameters.orderId
+                    o2.orderParameters.histOrderId=o.orderParameters.orderId
 
-                if o.orderParameters.fillType==FILLTYPES[FillTypeEnum.FAK]:
-                    o2.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.EXPIRED]
+                    if o.orderParameters.fillType==FILLTYPES[FillTypeEnum.FAK]:
+                        o2.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.EXPIRED]
 
-                self.updateAndSort(aggressor_orders, o1, cmp_function_aggorders)
-                self.updateAndSort(aggressor_orders, o2, cmp_function_aggorders)
+                    self.updateAndSort(aggressor_orders, o1, cmp_function_aggorders)
+                    self.updateAndSort(aggressor_orders, o2, cmp_function_aggorders)
+
+
 
         #If FoK rolled back transactionm, do nothing, otherwise update passive and aggressor orders
         if transactFills:
             for ord in tempFilledOrders:
                 ord.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.FILLED]
-                self.createTrade(ord, o)
+                #self.createTrade(ord, o)
             for ord in tempCancelledOrders:
                 ord.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.CANCELLED]
             for newSplitOrder in tempNewSplitdOrders:  #THe newly created orders (if any) from splits
                 self.updateAndSort(passive_orders, newSplitOrder, cmp_function_passorders)
+            for trade in tempTrades:
+                TradeIdGen.tradeIdNum+=1
+                trade.tradeId=TradeIdGen.tradeIdNum
+                self.trades.append(trade)
+        else:
+            DealIdGen.dealId=priorDealId # Reset
 
