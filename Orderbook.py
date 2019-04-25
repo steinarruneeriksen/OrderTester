@@ -88,7 +88,7 @@ class Orderbook:
     def getHtmlTradeTables(self):
         print "GEN  TABLE"
         tbl="<b>Trades</b>"
-        tbl=tbl+"<table class='tradetable'><tr><th>DealId</th><th>TradeId</th><th>From Order</th><th>TradeTime</th><th>Paritipant</th><th>Side</th><th>Counterpart</th><th>Quantity</th><th>TotPrice</th><th>ResrvPricePayable</th><th>ResrvPriceReceivable</th><th>ActivPricePayable</th><th>ActivPriceReceivable</th><th>Period</th></tr>"
+        tbl=tbl+"<table class='tradetable'><tr><th>DealId</th><th>TradeId</th><th>From Order</th><th>TradeTime</th><th>Paritipant</th><th>Side</th><th>Counterpart</th><th>Quantity</th><th>TotPrice</th><th>Settlement Reserve Price Payable</th><th>Settlement Reserve Price Receivable</th><th>ActivationPrice</th><th>Period</th></tr>"
         for o in self.trades:
             tbl=tbl+ self.debugHtmlTrade(o)
         tbl+="</table>"
@@ -97,7 +97,7 @@ class Orderbook:
 
     def debugHtmlTrade(self, t):
         return "<tr><td>" + str(t.dealId) + "</td><td>" + str(t.tradeId) + "</td><td>" + str(t.orderId)  + "</td><td>" + t.tradeTimeUtc \
-        + "</td><td>" + t.participant + "</td><td>" + t.side + "</td><td>NODES</td><td>" + str(t.quantity)  + "</td><td>"+ str(t.totalPrice)  + "</td><td>"+ str(t.getReservePricePayable()) + "</td><td>" + str(t.getReservePriceReceivable()) + "</td><td>"+ str(t.getActivationPricePayable()) + "</td><td>" + str(t.getActivationPriceReceivable()) + "</td><td>" + str(t.periodFromUtc) + " - " + str(t.periodUntilUtc) + "</td></tr>"
+        + "</td><td>" + t.participant + "</td><td>" + t.side + "</td><td>NODES</td><td>" + str(t.quantity)  + "</td><td>"+ str(t.totalPrice)  + "</td><td>"+ str(t.getReservePricePayable()) + "</td><td>" + str(t.getReservePriceReceivable()) + "</td><td>"+ str(t.activationPrice) + "</td><td>" + str(t.periodFromUtc) + " - " + str(t.periodUntilUtc) + "</td></tr>"
 
     def debugHtmlOrder(self, o):
         return "<tr><td>" + str(o.orderParameters.orderId) + "</td><td>" + str(o.orderParameters.histOrderId) + "</td><td>" + o.orderParameters.orderStatus \
@@ -154,11 +154,9 @@ class Orderbook:
         for t in temptrades:
             if t.side==SIDES[SideEnum.BUY]:
                 t.reservePricePayable=self.getReservationPrice(passiveOrder, agressorOrder)
-                t.activationPricePayable=t.totalPrice-t.reservePricePayable
             else:
                 t.reservePriceReceivable=self.getReservationPrice(passiveOrder, agressorOrder)
-                t.activationPriceReceivable=t.totalPrice-t.reservePriceReceivable
-
+            t.activationPrice=t.totalPrice-self.getReservationPrice(passiveOrder, agressorOrder)
             t.blockSizeInSeconds=passiveOrder.timeParameters.blockSizeInSeconds
             t.periodFromUtc=passiveOrder.timeParameters.periodFromUtc
             t.periodUntilUtc=passiveOrder.timeParameters.periodUntilUtc

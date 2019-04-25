@@ -32,7 +32,7 @@ def resetPrecondition():
     ob=Orderbook()  #Add 3 buy and 3 sell orders all for 5 MW
 
     #Second parameter 1..5 is participant id
-    ob.enterOrder(Order(0,"Mitnetz", 14, None, None, 5, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
+    ob.enterOrder(Order(0,"Mitnetz", 24, None, None, 5, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
     ob.enterOrder(Order(0,"Mitnetz", 18, None, None, 5, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT,isp, isp_end, expiration))
     ob.enterOrder(Order(0,"Mitnetz", 12, None, None, 5, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
     ob.enterOrder(Order(0,"FSP1", None, 10, 27, 5, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
@@ -80,23 +80,29 @@ if __name__== "__main__":
 
     participant="Test Aggressor" # Agressor participant (6). Participants 1..5 are already given on the passive precondition orders
 
-    #genTest("TEST ORDER", Order(0,participant, None, 5, 5, 8, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
+    genTest("Buy Order", Order(0,participant, 37, None, None, 50, FillTypeEnum.FOK, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
+
+    #genTest("Buy Order", Order(0,participant, 25, None, None, 2, FillTypeEnum.FAK, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
+    #genTest("Sell Order", Order(0,participant, None, 5, 5, 8, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
+    #genTest("Sell Order", Order(0,participant, None, 5, 5, 8, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
+
 
     #Generate lots of combinations as seller into the precondition
-    for a in FillTypeEnum:
-        for b in PriceTypeEnum:
-            for qty in [5,15,75]:
-                for aprice in [10, 20,30]:  #Keeping reservation price fixed and changing activation price on sell orders
-                    desc="Sell;" + FILLTYPES[a] + ";" + PRICETYPES[b] + ";" + str(qty) + ";" + str(5 + aprice)
-                    genTest(desc, Order(0, participant, None, 5, aprice, qty, a, b, isp, isp_end, expiration))
-
-    #Generate lots of combinations as buyer into the precondition
-    for a in FillTypeEnum:
-        for b in PriceTypeEnum:
-            for qty in [5,15,75]:
-                for unitPrice in [10, 20,30]:
-                    desc="Buy;" + FILLTYPES[a] + ";" + PRICETYPES[b] + ";" + str(qty) + ";" + str(5 + unitPrice)
-                    genTest(desc, Order(0,participant, unitPrice, None, None, qty, a, b, isp, isp_end, expiration))
+    # for a in FillTypeEnum:
+    #     #for b in PriceTypeEnum:    Market pricetype not allowed for FSP Asset selling.....
+    #     b=PriceTypeEnum.LIMIT
+    #     for qty in [5,15,75]:
+    #         for aprice in [10, 20,30]:  #Keeping reservation price fixed and changing activation price on sell orders
+    #             desc="Sell;" + FILLTYPES[a] + ";" + PRICETYPES[b] + ";" + str(qty) + ";" + str(5 + aprice)
+    #             genTest(desc, Order(0, participant, None, 5, aprice, qty, a, b, isp, isp_end, expiration))
+    #
+    # #Generate lots of combinations as buyer into the precondition
+    # for a in FillTypeEnum:
+    #     for b in PriceTypeEnum:
+    #         for qty in [5,15,75]:
+    #             for unitPrice in [10, 20,30]:
+    #                 desc="Buy;" + FILLTYPES[a] + ";" + PRICETYPES[b] + ";" + str(qty) + ";" + str(5 + unitPrice)
+    #                 genTest(desc, Order(0,participant, unitPrice, None, None, qty, a, b, isp, isp_end, expiration))
 
     # f=open(TestMaster.targetdir + "testdata.csv","w")
     # f.write("Test file;Buy or Sell;Fill type;Order type;Quantity;Price\n")
