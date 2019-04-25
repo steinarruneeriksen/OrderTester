@@ -20,8 +20,8 @@ class OrderParameters():
         self.orderId=id
         self.histOrderId=None     #Reference to historical order this order was changed/split from
         self.unitPrice=unitPrice
-        self.activationPrice=reservPrice
-        self.reservationPrice=activPrice
+        self.activationPrice=activPrice
+        self.reservationPrice=reservPrice
         if unitPrice is None:
             self.side=SIDES[SideEnum.SELL]
         else:
