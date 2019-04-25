@@ -30,7 +30,6 @@ TestMaster.html="<html><head>" + htmlheader + "</head><body>"
 def resetPrecondition():
     ob=Orderbook()  #Add 3 buy and 3 sell orders all for 5 MW
 
-    #Second parameter 1..5 is participant id
     ob.enterOrder(Order(0,"Mitnetz", 24, None, None, 5, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
     ob.enterOrder(Order(0,"Mitnetz", 18, None, None, 5, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT,isp, isp_end, expiration))
     ob.enterOrder(Order(0,"Mitnetz", 12, None, None, 5, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
@@ -76,33 +75,32 @@ def genTest(description, o):
 if __name__== "__main__":
     print "Staring generator"
 
-    participant="Test Aggressor" # Agressor participant (6). Participants 1..5 are already given on the passive precondition orders
-
-    #genTest("Buy Order", Order(0,participant, 55, None, None, 5, FillTypeEnum.FOK, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
-
-    #genTest("Buy Order", Order(0,participant, 25, None, None, 2, FillTypeEnum.FAK, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
-    #genTest("Sell Order", Order(0,participant, None, 5, 5, 8, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
-
-    #genTest("Sell Order", Order(0,participant, None, 5, 5, 5, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
+    participant="Test Aggressor"
 
 
-    #Generate lots of combinations as seller into the precondition
-    for a in FillTypeEnum:
-        #for b in PriceTypeEnum:    Market pricetype not allowed for FSP Asset selling.....
-        b=PriceTypeEnum.LIMIT
+    #Uncommend lines below if you want to run separate tests
+    #genTest("Buy Order", Order(0,participant, 38, None, None, 80, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
+    #genTest("Sell Order", Order(0,participant, None, 5, 10, 8, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
+
+
+
+    # #Generate lots of combinations as seller into the orderbook
+    for fillType in FillTypeEnum:
+        # Market pricetype not allowed for FSP Asset selling.....
+        priceType=PriceTypeEnum.LIMIT
         for qty in [5,15,75]:
-            for aprice in [10, 20,30]:  #Keeping reservation price fixed and changing activation price on sell orders
-                desc="Sell;" + FILLTYPES[a] + ";" + PRICETYPES[b] + ";" + str(qty) + ";" + str(5 + aprice)
-                genTest(desc, Order(0, participant, None, 5, aprice, qty, a, b, isp, isp_end, expiration))
+            activationPrice=12   #Keep same...
+            for reservationPrice in [2, 5, 10]:  #Keeping reservation price fixed and changing activation price on sell orders
+                desc="Sell;" + FILLTYPES[fillType] + ";" + PRICETYPES[priceType] + ";" + str(qty) + ";" + str(activationPrice + reservationPrice)
+                genTest(desc, Order(0, participant, None, reservationPrice, activationPrice, qty, fillType, priceType, isp, isp_end, expiration))
 
-    #Generate lots of combinations as buyer into the precondition
-    for a in FillTypeEnum:
-        #for b in PriceTypeEnum:
-        b=PriceTypeEnum.LIMIT
-        for qty in [5,15,75]:
-            for unitPrice in [10, 37, 38, 55]:
-                desc="Buy;" + FILLTYPES[a] + ";" + PRICETYPES[b] + ";" + str(qty) + ";" + str(5 + unitPrice)
-                genTest(desc, Order(0,participant, unitPrice, None, None, qty, a, b, isp, isp_end, expiration))
+    #Generate lots of combinations as buyer into the orderbook
+    for fillType in FillTypeEnum:
+        for priceType in PriceTypeEnum:
+            for qty in [5,15,75]:
+                for unitPrice in [10, 37, 38, 55]:
+                    desc="Buy;" + FILLTYPES[fillType] + ";" + PRICETYPES[priceType] + ";" + str(qty) + ";" + str(unitPrice)
+                    genTest(desc, Order(0,participant, unitPrice, None, None, qty, fillType, priceType, isp, isp_end, expiration))
 
     # f=open(TestMaster.targetdir + "testdata.csv","w")
     # f.write("Test file;Buy or Sell;Fill type;Order type;Quantity;Price\n")

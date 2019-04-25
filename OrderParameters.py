@@ -40,6 +40,7 @@ class OrderParameters():
         self.currency="EUR"
         self.quantityType=QUANTITYTYPES[QuantityTypeEnum.POWER]
         self.quantity=quantity
+        self.originalQuantity=quantity
         self.regulation=REGULATIONS[RegulationEnum.DOWN]
         self.priceType=PRICETYPES[priceType]
         self.expirationUtc=expiration.isoformat()
