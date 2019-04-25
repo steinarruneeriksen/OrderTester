@@ -14,7 +14,11 @@ class OrderParameters():
             return self.activationPrice + self.reservationPrice
         else:
             return self.unitPrice
-
+    def getPriceInfo(self):
+        if self.unitPrice is None:
+            return str(self.getSumPrice()) + " [RsvPrice: " + str(self.reservationPrice) + ", ActPrice:" +  str(self.activationPrice) + "]"
+        else:
+            return str(self.getSumPrice()) + " [UnitPrice: " + str(self.unitPrice)+ "]"
     # unitPrice used for Buy Orders.
     def __init__(self, id, unitPrice, reservPrice, activPrice,quantity, fillType, priceType, expiration):
         self.orderId=id

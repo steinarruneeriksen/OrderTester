@@ -25,4 +25,5 @@ class Order():
             return True
         else:
             return False
-
+    def getPriceInfo(self):
+        self.orderParameters.getPriceInfo()

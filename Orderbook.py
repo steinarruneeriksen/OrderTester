@@ -86,13 +86,11 @@ class Orderbook:
         return tbl
 
     def getHtmlTradeTables(self):
-        print "GEN  TABLE"
         tbl="<b>Trades</b>"
         tbl=tbl+"<table class='tradetable'><tr><th>DealId</th><th>TradeId</th><th>From Order</th><th>TradeTime</th><th>Paritipant</th><th>Side</th><th>Counterpart</th><th>Quantity</th><th>TotPrice</th><th>Settlement Reserve Price Payable</th><th>Settlement Reserve Price Receivable</th><th>ActivationPrice</th><th>Period</th></tr>"
         for o in self.trades:
             tbl=tbl+ self.debugHtmlTrade(o)
         tbl+="</table>"
-        print tbl
         return tbl
 
     def debugHtmlTrade(self, t):
@@ -101,7 +99,7 @@ class Orderbook:
 
     def debugHtmlOrder(self, o):
         return "<tr><td>" + str(o.orderParameters.orderId) + "</td><td>" + str(o.orderParameters.histOrderId) + "</td><td>" + o.orderParameters.orderStatus \
-        + "</td><td>" + o.participant + "</td><td>" + str(o.orderParameters.getSumPrice()) + "</td><td>" + str(o.orderParameters.quantity) + "</td></tr>"
+        + "</td><td>" + o.participant + "</td><td>" + str(o.orderParameters.getPriceInfo()) + "</td><td>" + str(o.orderParameters.quantity) + "</td></tr>"
 
     def debugSingleOrder(self, o):
         return "OID: " + str(o.orderParameters.orderId) + ",HistOID: " + str(o.orderParameters.histOrderId) + ",STATUS: " + o.orderParameters.orderStatus \
@@ -204,22 +202,22 @@ class Orderbook:
                     qtyToFill=qtyToFill-order.orderParameters.quantity
                 elif qtyToFill<order.orderParameters.quantity:
                     # Split the passive order, and set the filled part as the old ID and
-                    tempCancelledOrders.append(order)   # The old order swill be cancelled
+                    #tempCancelledOrders.append(order)   # The old order swill be cancelled
                     restQuantity=order.orderParameters.quantity-qtyToFill
                     passiveOrder1 = copy.deepcopy(order)
-                    passiveOrder2 = copy.deepcopy(order)
-                    passiveOrder1.orderParameters.histOrderId=order.orderParameters.orderId
-                    passiveOrder2.orderParameters.histOrderId=order.orderParameters.orderId
-                    self.genOrderId(passiveOrder1)
-                    self.genOrderId(passiveOrder2)
-                    passiveOrder2.orderParameters.quantity=restQuantity
-                    passiveOrder2.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.ACTIVE]
-                    passiveOrder1.orderParameters.quantity=qtyToFill
-                    passiveOrder1.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.FILLED]
-                    tempTrades.extend(self.createTrade(passiveOrder1, o))
+                    filledOrder = copy.deepcopy(order)
+                    #passiveOrder1.orderParameters.histOrderId=order.orderParameters.orderId
+                    filledOrder.orderParameters.histOrderId=order.orderParameters.orderId
+                    #self.genOrderId(passiveOrder1)
+                    self.genOrderId(filledOrder)
+                    order.orderParameters.quantity=restQuantity
+                    order.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.ACTIVE]
+                    filledOrder.orderParameters.quantity=qtyToFill
+                    filledOrder.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.FILLED]
+                    tempTrades.extend(self.createTrade(filledOrder, o))
 
-                    tempNewSplitdOrders.append(passiveOrder1)    #Will be added to the main sellers list if not rolled back (FillorKill case)
-                    tempNewSplitdOrders.append(passiveOrder2)
+                    tempNewSplitdOrders.append(filledOrder)    #Will be added to the main sellers list if not rolled back (FillorKill case)
+                    #tempNewSplitdOrders.append(passiveOrder1)
                     #self.updateAndSort(self.sell_orders, o2, cmp_items_sellers)
                     qtyToFill=0   #Was completely filled
 
@@ -242,25 +240,25 @@ class Orderbook:
                     #Split aggressor, and add orig order to cancel queue
                     o.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.CANCELLED]
                     o1 = copy.deepcopy(o)
-                    o2 = copy.deepcopy(o)
+                    #o2 = copy.deepcopy(o)
                     filledQuantity=o.orderParameters.quantity-qtyToFill
 
                     o1.orderParameters.quantity=filledQuantity
-                    o2.orderParameters.quantity=qtyToFill   #Remaining quantity
+                    o.orderParameters.quantity=qtyToFill   # Update order with Remaining quantity
 
                     o1.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.FILLED]
-                    o2.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.ACTIVE]  #Remain in orderbook if not FAK
+                    o.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.ACTIVE]  #Remain in orderbook if not FAK
 
                     self.genOrderId(o1)
-                    self.genOrderId(o2)
+                    #self.genOrderId(o2)
                     o1.orderParameters.histOrderId=o.orderParameters.orderId
-                    o2.orderParameters.histOrderId=o.orderParameters.orderId
+                    #o2.orderParameters.histOrderId=o.orderParameters.orderId
 
                     if o.orderParameters.fillType==FILLTYPES[FillTypeEnum.FAK]:
-                        o2.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.EXPIRED]
+                        o.orderParameters.orderStatus=ORDERSTATUSES[OrderStatusEnum.EXPIRED]
 
                     self.updateAndSort(aggressor_orders, o1, cmp_function_aggorders)
-                    self.updateAndSort(aggressor_orders, o2, cmp_function_aggorders)
+                    #self.updateAndSort(aggressor_orders, o2, cmp_function_aggorders)
 
 
 
