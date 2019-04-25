@@ -80,7 +80,7 @@ if __name__== "__main__":
 
     participant="Test Aggressor" # Agressor participant (6). Participants 1..5 are already given on the passive precondition orders
 
-    genTest("Buy Order", Order(0,participant, 37, None, None, 50, FillTypeEnum.FOK, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
+    genTest("Buy Order", Order(0,participant, 37, None, None, 50, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
 
     #genTest("Buy Order", Order(0,participant, 25, None, None, 2, FillTypeEnum.FAK, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
     #genTest("Sell Order", Order(0,participant, None, 5, 5, 8, FillTypeEnum.NORMAL, PriceTypeEnum.LIMIT, isp, isp_end, expiration))
